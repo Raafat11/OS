@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation — SRTF vs Round Robin | C2</title>
+<style>
+  :root { --srtf:#0d9488;--rr:#7c3aed;--blue:#2563eb;--dark:#0f172a;--bg:#f1f5f9;--border:#e2e8f0;--text:#1e293b;--muted:#64748b; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);line-height:1.8;}
+  .header{background:linear-gradient(135deg,#0f172a,#1a1a4e);color:white;padding:2.5rem 2rem;text-align:center;border-bottom:4px solid #7c3aed;}
+  .header h1{font-size:1.8rem;font-weight:800;margin-bottom:0.5rem;}
+  .header p{color:#94a3b8;font-size:0.95rem;}
+  .badges{display:flex;gap:0.75rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;}
+  .badge{padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:700;}
+  .badge-teal{background:#ccfbf1;color:#065f46;}
+  .badge-purple{background:#ede9fe;color:#4c1d95;}
+  .badge-blue{background:#dbeafe;color:#1e40af;}
+  .nav{background:white;border-bottom:1px solid var(--border);padding:0.75rem 2rem;display:flex;gap:1.5rem;overflow-x:auto;position:sticky;top:0;z-index:100;flex-wrap:wrap;}
+  .nav a{color:var(--muted);text-decoration:none;font-size:0.85rem;font-weight:600;white-space:nowrap;padding:0.3rem 0;border-bottom:2px solid transparent;}
+  .nav a:hover{color:var(--blue);border-bottom-color:var(--blue);}
+  .container{max-width:1000px;margin:2rem auto;padding:0 1.5rem;}
+  .section{margin-bottom:2.5rem;}
+  .section-title{display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:2px solid var(--border);}
+  .section-num{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:white;flex-shrink:0;}
+  .bg-blue{background:var(--blue);} .bg-teal{background:var(--srtf);} .bg-purple{background:var(--rr);}
+  .bg-orange{background:#f59e0b;} .bg-green{background:#059669;} .bg-red{background:#dc2626;} .bg-gray{background:#64748b;}
+  .section-title h2{font-size:1.2rem;font-weight:700;color:var(--dark);}
+  .card{background:white;border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1rem;}
+  .card p{font-size:0.9rem;color:#374151;margin-bottom:0.5rem;}
+  .algo-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  .algo-card{border-radius:12px;padding:1.25rem;border:2px solid;}
+  .algo-card.srtf{background:#f0fdfa;border-color:var(--srtf);}
+  .algo-card.rr{background:#faf5ff;border-color:var(--rr);}
+  .algo-card h3{margin-bottom:0.75rem;font-size:1rem;}
+  .algo-card.srtf h3{color:var(--srtf);}
+  .algo-card.rr h3{color:var(--rr);}
+  .algo-card ul{padding-left:1.25rem;font-size:0.88rem;}
+  .algo-card li{margin-bottom:0.4rem;}
+  .formula-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.75rem;}
+  .formula-card{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;}
+  .formula-card .name{font-weight:700;font-size:0.85rem;color:var(--blue);margin-bottom:0.25rem;}
+  .formula-card .formula{font-family:monospace;background:#1e293b;color:#e2e8f0;padding:0.3rem 0.6rem;border-radius:6px;font-size:0.85rem;display:inline-block;margin-bottom:0.3rem;}
+  .formula-card .desc{font-size:0.82rem;color:var(--muted);}
+  .scenario-card{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem;}
+  .scenario-header{padding:0.9rem 1.25rem;display:flex;align-items:center;gap:0.75rem;}
+  .scenario-body{padding:1.25rem;}
+  .scenario-label{font-size:0.75rem;font-weight:800;padding:0.25rem 0.75rem;border-radius:20px;}
+  table{width:100%;border-collapse:collapse;font-size:0.85rem;margin:0.75rem 0;}
+  th{background:#f1f5f9;padding:0.6rem 0.75rem;text-align:center;font-weight:700;font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  td{padding:0.55rem 0.75rem;text-align:center;border-bottom:1px solid #f1f5f9;}
+  tr:last-child td{border-bottom:none;}
+  .avg-row td{background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0;}
+  .winner{background:#dcfce7;color:#166534;font-weight:700;border-radius:4px;padding:0.1rem 0.4rem;}
+  .winner-rr{background:#ede9fe;color:#4c1d95;font-weight:700;border-radius:4px;padding:0.1rem 0.4rem;}
+  .analysis-box{border-radius:10px;padding:1rem 1.25rem;margin-top:0.75rem;font-size:0.88rem;}
+  .analysis-box.blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;}
+  .analysis-box.orange{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;}
+  .analysis-box.red{background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;}
+  .analysis-box.purple{background:#faf5ff;border:1px solid #e9d5ff;color:#4c1d95;}
+  .analysis-box.green{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;}
+  .rejected{color:#dc2626;font-weight:700;}
+  .accepted{color:#059669;font-weight:700;}
+  .compare-table th{background:#1e293b;color:white;}
+  .srtf-col{color:var(--srtf);font-weight:700;}
+  .rr-col{color:var(--rr);font-weight:700;}
+  .conclusion-box{background:linear-gradient(135deg,#f5f3ff,#eff6ff);border:2px solid #c4b5fd;border-radius:12px;padding:1.5rem;}
+  .conclusion-box h3{color:#4c1d95;margin-bottom:0.75rem;font-size:1rem;}
+  .conclusion-box p{font-size:0.9rem;color:#374151;margin-bottom:0.75rem;}
+  .tip{background:#fefce8;border-left:4px solid #f59e0b;padding:0.75rem 1rem;border-radius:0 8px 8px 0;font-size:0.88rem;color:#713f12;margin:0.75rem 0;}
+  .rule-box{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;margin-bottom:0.75rem;font-size:0.88rem;}
+  .valid-rule{display:flex;gap:1rem;align-items:flex-start;padding:0.6rem 0;border-bottom:1px dashed var(--border);font-size:0.88rem;}
+  .valid-rule:last-child{border:none;}
+  .footer{text-align:center;padding:2rem;color:var(--muted);font-size:0.85rem;border-top:1px solid var(--border);margin-top:2rem;}
+  .tq-note{background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:0.9rem 1.25rem;font-size:0.88rem;color:#4c1d95;margin:0.75rem 0;}
+  @media(max-width:700px){.algo-grid,.formula-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Documentation — SRTF vs Round Robin Scheduling</h1>
+  <p>Operating Systems Course — C2 Comparison Project</p>
+  <div class="badges">
+    <span class="badge badge-teal">SRTF (Preemptive)</span>
+    <span class="badge badge-purple">Round Robin (Preemptive)</span>
+    <span class="badge badge-blue">OS Course — Project C2</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <a href="#overview">Overview</a>
+  <a href="#algorithms">Algorithms</a>
+  <a href="#metrics">Metrics</a>
+  <a href="#rules">Rules</a>
+  <a href="#validation">Validation</a>
+  <a href="#scenarioA">Scenario A</a>
+  <a href="#scenarioB">Scenario B</a>
+  <a href="#scenarioC">Scenario C</a>
+  <a href="#scenarioD">Scenario D</a>
+  <a href="#scenarioE">Scenario E</a>
+  <a href="#comparison">Comparison</a>
+  <a href="#conclusion">Conclusion</a>
+</nav>
+
+<div class="container">
+
+  <!-- 1. OVERVIEW -->
+  <div class="section" id="overview">
+    <div class="section-title"><div class="section-num bg-blue">1</div><h2>Project Overview</h2></div>
+    <div class="card">
+      <p>This project compares two CPU scheduling algorithms: <strong>SRTF (Shortest Remaining Time First — Preemptive)</strong> and <strong>Round Robin (RR — Preemptive with Time Quantum = 2)</strong>. Both algorithms are executed on the exact same workload to ensure a valid and fair comparison.</p>
+      <p style="margin-top:0.75rem;">The goal is to analyze the difference between a scheduler that always selects the process with the <strong>shortest remaining burst time</strong> and one that distributes CPU time <strong>equally among all ready processes</strong> using a fixed time quantum, and to evaluate how each affects waiting time, response time, and turnaround time.</p>
+    </div>
+  </div>
+
+  <!-- 2. ALGORITHMS -->
+  <div class="section" id="algorithms">
+    <div class="section-title"><div class="section-num bg-teal">2</div><h2>Algorithm Descriptions</h2></div>
+    <div class="algo-grid">
+      <div class="algo-card srtf">
+        <h3>⚡ SRTF — Shortest Remaining Time First (Preemptive)</h3>
+        <ul>
+          <li>Always selects the process with the <strong>shortest remaining burst time</strong> from the ready queue</li>
+          <li><strong>Preemptive:</strong> if a new process arrives with a shorter remaining burst time than the currently running one, it is immediately preempted</li>
+          <li>Also known as <strong>SRTN (Shortest Remaining Time Next)</strong></li>
+          <li><strong>Goal:</strong> to minimize the average waiting time for all processes</li>
+          <li><strong>Tie-breaking:</strong> equal remaining burst time → earlier arrival time wins; if still tied → alphabetical Process ID</li>
+        </ul>
+      </div>
+      <div class="algo-card rr">
+        <h3>🕒 RR — Round Robin (Preemptive)</h3>
+        <ul>
+          <li><strong>Time Quantum (TQ = 2):</strong> each process is assigned a fixed time unit. The CPU switches between processes after every TQ</li>
+          <li><strong>Preemptive:</strong> a process is preempted once its time quantum expires and is moved to the back of the ready queue</li>
+          <li><strong>Fairness:</strong> ensures no process waits too long and prevents starvation</li>
+          <li><strong>Performance</strong> depends heavily on TQ value: too large → behaves like FCFS; too small → excessive context switching</li>
+          <li><strong>Tie-breaking:</strong> if a new process arrives exactly when a TQ expires, the new arrival is added to the queue first, followed by the preempted process</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. METRICS -->
+  <div class="section" id="metrics">
+    <div class="section-title"><div class="section-num bg-orange">3</div><h2>Metrics Calculated</h2></div>
+    <div class="formula-grid">
+      <div class="formula-card">
+        <div class="name">CT — Completion Time</div>
+        <div class="formula">time when process finishes</div>
+        <div class="desc">The exact time at which the process finishes its execution on the CPU</div>
+      </div>
+      <div class="formula-card">
+        <div class="name">TAT — Turnaround Time</div>
+        <div class="formula">TAT = CT − Arrival Time</div>
+        <div class="desc">Total time from when the process arrived until it completed execution</div>
+      </div>
+      <div class="formula-card">
+        <div class="name">WT — Waiting Time</div>
+        <div class="formula">WT = TAT − Burst Time</div>
+        <div class="desc">Total time the process spent waiting in the ready queue without executing</div>
+      </div>
+      <div class="formula-card">
+        <div class="name">RT — Response Time</div>
+        <div class="formula">RT = First CPU Time − Arrival Time</div>
+        <div class="desc">Time from when the process arrived until it first received CPU execution</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. RULES -->
+  <div class="section" id="rules">
+    <div class="section-title"><div class="section-num bg-purple">4</div><h2>Implementation Rules</h2></div>
+    <div class="rule-box"><strong>Time Quantum Rule:</strong> Round Robin uses a fixed Time Quantum (TQ = 2). Each process runs for at most 2 time units before being preempted and moved to the back of the ready queue.</div>
+    <div class="rule-box"><strong>Preemption Rule (SRTF):</strong> The running process is interrupted immediately when a newly arrived process has a shorter remaining burst time.</div>
+    <div class="rule-box"><strong>Preemption Rule (RR):</strong> The running process is preempted after exactly TQ time units expire, regardless of its remaining burst time.</div>
+    <div class="rule-box"><strong>Tie-Breaking Rule (SRTF):</strong> Equal remaining burst time → earlier arrival time wins. If arrival times also match → alphabetical Process ID.</div>
+    <div class="rule-box"><strong>Tie-Breaking Rule (RR):</strong> When a new process arrives exactly as a quantum expires, the new arrival enters the queue before the preempted process.</div>
+    <div class="rule-box"><strong>Same Workload Rule:</strong> Both algorithms must run on the exact same set of processes. A comparison is invalid if different datasets are used.</div>
+  </div>
+
+  <!-- 5. VALIDATION -->
+  <div class="section" id="validation">
+    <div class="section-title"><div class="section-num bg-red">5</div><h2>Input Validation</h2></div>
+    <div class="card">
+      <p style="margin-bottom:0.75rem;">The simulator validates all input before the simulation begins and rejects any invalid data with a clear error message.</p>
+      <div class="valid-rule"><span>❌</span><span><strong>Negative Arrival Time:</strong> rejected — must be ≥ 0</span></div>
+      <div class="valid-rule"><span>❌</span><span><strong>Zero or Negative Burst Time:</strong> rejected — must be ≥ 1</span></div>
+      <div class="valid-rule"><span>❌</span><span><strong>Time Quantum &lt; 1:</strong> rejected — TQ must be at least 1 (system shows: "Time Quantum must be at least 1")</span></div>
+      <div class="valid-rule"><span>❌</span><span><strong>Duplicate Process ID:</strong> rejected — each process must have a unique ID</span></div>
+      <div class="valid-rule"><span>❌</span><span><strong>Empty Fields:</strong> rejected — all fields (PID, Arrival Time, Burst Time) are required</span></div>
+      <div class="valid-rule"><span>❌</span><span><strong>Non-numeric Values in Numeric Fields:</strong> rejected</span></div>
+      <div class="valid-rule"><span>✅</span><span><strong>Valid Input:</strong> unique PID, AT ≥ 0, BT ≥ 1, TQ ≥ 1</span></div>
+    </div>
+  </div>
+
+  <!-- SCENARIO A -->
+  <div class="section" id="scenarioA">
+    <div class="section-title"><div class="section-num bg-blue">A</div><h2>Scenario A — Basic Mixed Workload</h2></div>
+    <div class="scenario-card">
+      <div class="scenario-header" style="background:#eff6ff;">
+        <span class="scenario-label" style="background:#dbeafe;color:#1e40af;">Scenario A</span>
+        <strong>Normal workload — tests the basic correctness of both algorithms (TQ = 2)</strong>
+      </div>
+      <div class="scenario-body">
+        <h3 style="margin-bottom:0.75rem;">Input Data</h3>
+        <table>
+          <thead><tr><th>PID</th><th>Arrival Time</th><th>Burst Time</th></tr></thead>
+          <tbody>
+            <tr><td>p1</td><td>0</td><td>5</td></tr>
+            <tr><td>p2</td><td>1</td><td>3</td></tr>
+            <tr><td>p3</td><td>2</td><td>1</td></tr>
+            <tr><td>p4</td><td>4</td><td>2</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">Round Robin Results (TQ = 2)</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>p1</td><td>0</td><td>5</td><td>11</td><td>11</td><td>6</td><td>0</td></tr>
+            <tr><td>p2</td><td>1</td><td>3</td><td>10</td><td>9</td><td>6</td><td>1</td></tr>
+            <tr><td>p3</td><td>2</td><td>1</td><td>5</td><td>3</td><td>2</td><td>2</td></tr>
+            <tr><td>p4</td><td>4</td><td>2</td><td>9</td><td>5</td><td>3</td><td>3</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>7.00</td><td>4.25</td><td>1.50</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">SRTF Results</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>p1</td><td>0</td><td>5</td><td>11</td><td>11</td><td>6</td><td>0</td></tr>
+            <tr><td>p2</td><td>1</td><td>3</td><td>5</td><td>4</td><td>1</td><td>0</td></tr>
+            <tr><td>p3</td><td>2</td><td>1</td><td>3</td><td>1</td><td>0</td><td>0</td></tr>
+            <tr><td>p4</td><td>4</td><td>2</td><td>7</td><td>3</td><td>1</td><td>1</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>4.75</td><td>2.00</td><td>0.25</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.5rem;">Comparison Summary</h3>
+        <table>
+          <thead><tr><th>Metric</th><th class="rr-col">Round Robin</th><th class="srtf-col">SRTF</th><th>Winner</th></tr></thead>
+          <tbody>
+            <tr><td>Avg Waiting Time</td><td>4.25</td><td><span class="winner">2.00 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Turnaround</td><td>7.00</td><td><span class="winner">4.75 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Response Time</td><td>1.50</td><td><span class="winner">0.25 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+          </tbody>
+        </table>
+        <div class="analysis-box blue">
+          <strong>Analysis:</strong> SRTF outperformed Round Robin on all three metrics. By always selecting the shortest remaining job, SRTF completed p3 (BT=1) at t=3 and p2 (BT=3) at t=5, well before RR could. Round Robin's time-sharing equally divided CPU time, increasing average waiting and turnaround times. SRTF is clearly more efficient for this mixed workload.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENARIO B -->
+  <div class="section" id="scenarioB">
+    <div class="section-title"><div class="section-num bg-orange">B</div><h2>Scenario B — Quantum Sensitivity (Long vs Short Jobs)</h2></div>
+    <div class="scenario-card">
+      <div class="scenario-header" style="background:#fff7ed;">
+        <span class="scenario-label" style="background:#fed7aa;color:#7c2d12;">Scenario B</span>
+        <strong>Reveals how TQ = 2 affects a mix of long and short burst times (TQ = 2)</strong>
+      </div>
+      <div class="scenario-body">
+        <div class="tip">Purpose: P1 has the longest burst time (10). P3 has the shortest (2). This scenario tests how Round Robin distributes CPU time fairly while SRTF aggressively favors short jobs.</div>
+        <h3 style="margin-bottom:0.75rem;">Input Data</h3>
+        <table>
+          <thead><tr><th>PID</th><th>Arrival Time</th><th>Burst Time</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>10</td></tr>
+            <tr><td>P2</td><td>1</td><td>5</td></tr>
+            <tr><td>P3</td><td>2</td><td>2</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">Round Robin Results (TQ = 2)</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>10</td><td>17</td><td>17</td><td>7</td><td>0</td></tr>
+            <tr><td>P2</td><td>1</td><td>5</td><td>13</td><td>12</td><td>7</td><td>1</td></tr>
+            <tr><td>P3</td><td>2</td><td>2</td><td>6</td><td>4</td><td>2</td><td>2</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>11.00</td><td>5.33</td><td>1.00</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">SRTF Results</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>10</td><td>17</td><td>17</td><td>7</td><td>0</td></tr>
+            <tr><td>P2</td><td>1</td><td>5</td><td>8</td><td>7</td><td>2</td><td>0</td></tr>
+            <tr><td>P3</td><td>2</td><td>2</td><td>4</td><td>2</td><td>0</td><td>0</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>8.67</td><td>3.00</td><td>0.00</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.5rem;">Comparison Summary</h3>
+        <table>
+          <thead><tr><th>Metric</th><th class="rr-col">Round Robin</th><th class="srtf-col">SRTF</th><th>Winner</th></tr></thead>
+          <tbody>
+            <tr><td>Avg Waiting Time</td><td>5.33</td><td><span class="winner">3.00 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Turnaround</td><td>11.00</td><td><span class="winner">8.67 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Response Time</td><td>1.00</td><td><span class="winner">0.00 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+          </tbody>
+        </table>
+        <div class="analysis-box orange">
+          <strong>Key Observation:</strong> SRTF immediately preempted P1 as shorter jobs (P3, P2) arrived, completing them with zero waiting time. Round Robin sliced CPU time equally — P3 and P2 had to wait longer because P1 continued to consume quanta. SRTF wins all metrics, but Round Robin is fairer to P1 since it doesn't get starved by shorter jobs indefinitely.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENARIO C -->
+  <div class="section" id="scenarioC">
+    <div class="section-title"><div class="section-num bg-red">C</div><h2>Scenario C — Short Job Heavy</h2></div>
+    <div class="scenario-card">
+      <div class="scenario-header" style="background:#fef2f2;">
+        <span class="scenario-label" style="background:#fecaca;color:#7f1d1d;">Scenario C</span>
+        <strong>One very long job alongside many short jobs — reveals starvation risk in SRTF (TQ = 2)</strong>
+      </div>
+      <div class="scenario-body">
+        <div class="tip">Purpose: P1 has an extremely long burst time (20) while P2, P3, P4 all have burst time = 1. This tests how each algorithm handles a dominant long job competing with many short ones.</div>
+        <h3 style="margin-bottom:0.75rem;">Input Data</h3>
+        <table>
+          <thead><tr><th>PID</th><th>Arrival Time</th><th>Burst Time</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>20</td><td>Very long burst — arrives first</td></tr>
+            <tr><td>P2</td><td>1</td><td>1</td><td>Short burst</td></tr>
+            <tr><td>P3</td><td>2</td><td>1</td><td>Short burst</td></tr>
+            <tr><td>P4</td><td>3</td><td>1</td><td>Short burst</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">Round Robin Results (TQ = 2)</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>20</td><td>23</td><td>23</td><td>3</td><td>0</td></tr>
+            <tr><td>P2</td><td>1</td><td>1</td><td>3</td><td>2</td><td>1</td><td>1</td></tr>
+            <tr><td>P3</td><td>2</td><td>1</td><td>4</td><td>2</td><td>1</td><td>1</td></tr>
+            <tr><td>P4</td><td>3</td><td>1</td><td>7</td><td>4</td><td>3</td><td>3</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>7.75</td><td>2.00</td><td>1.25</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">SRTF Results</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>20</td><td>23</td><td>23</td><td>3</td><td>0</td></tr>
+            <tr><td>P2</td><td>1</td><td>1</td><td>2</td><td>1</td><td>0</td><td>0</td></tr>
+            <tr><td>P3</td><td>2</td><td>1</td><td>3</td><td>1</td><td>0</td><td>0</td></tr>
+            <tr><td>P4</td><td>3</td><td>1</td><td>4</td><td>1</td><td>0</td><td>0</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>6.50</td><td>0.75</td><td>0.00</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.5rem;">Comparison Summary</h3>
+        <table>
+          <thead><tr><th>Metric</th><th class="rr-col">Round Robin</th><th class="srtf-col">SRTF</th><th>Winner</th></tr></thead>
+          <tbody>
+            <tr><td>Avg Waiting Time</td><td>2.00</td><td><span class="winner">0.75 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Turnaround</td><td>7.75</td><td><span class="winner">6.50 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Response Time</td><td>1.25</td><td><span class="winner">0.00 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+          </tbody>
+        </table>
+        <div class="analysis-box red">
+          <strong>Starvation Observation:</strong> SRTF immediately preempted P1 as each short job arrived (P2 at t=1, P3 at t=2, P4 at t=3), giving them zero waiting time. P1 only resumes after all short jobs complete. In a real system where short jobs keep arriving continuously, P1 could be delayed indefinitely — this is <strong>starvation</strong> caused by SRTF. Round Robin avoids this by guaranteeing every process gets CPU time every TQ cycle, making it fairer to long jobs like P1.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENARIO D -->
+  <div class="section" id="scenarioD">
+    <div class="section-title"><div class="section-num bg-gray">D</div><h2>Scenario D — Fairness Case (Equal Burst Times)</h2></div>
+    <div class="scenario-card">
+      <div class="scenario-header" style="background:#f8fafc;">
+        <span class="scenario-label" style="background:#e2e8f0;color:#374151;">Scenario D</span>
+        <strong>All processes have equal burst time — where Round Robin truly shines (TQ = 2)</strong>
+      </div>
+      <div class="scenario-body">
+        <div class="tip">Purpose: All three processes have identical burst time (20) and arrive at t=0. This tests fairness — Round Robin should distribute CPU time equally, while SRTF behaves like FCFS since all remaining times are always equal.</div>
+        <h3 style="margin-bottom:0.75rem;">Input Data</h3>
+        <table>
+          <thead><tr><th>PID</th><th>Arrival Time</th><th>Burst Time</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>20</td></tr>
+            <tr><td>P2</td><td>0</td><td>20</td></tr>
+            <tr><td>P3</td><td>0</td><td>20</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">Round Robin Results (TQ = 2)</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>20</td><td>56</td><td>56</td><td>36</td><td>0</td></tr>
+            <tr><td>P2</td><td>0</td><td>20</td><td>58</td><td>58</td><td>38</td><td>2</td></tr>
+            <tr><td>P3</td><td>0</td><td>20</td><td>60</td><td>60</td><td>40</td><td>4</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>58.00</td><td>38.00</td><td>2.00</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.75rem;">SRTF Results</h3>
+        <table>
+          <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>TAT</th><th>WT</th><th>RT</th></tr></thead>
+          <tbody>
+            <tr><td>P1</td><td>0</td><td>20</td><td>20</td><td>20</td><td>0</td><td>0</td></tr>
+            <tr><td>P2</td><td>0</td><td>20</td><td>40</td><td>40</td><td>20</td><td>20</td></tr>
+            <tr><td>P3</td><td>0</td><td>20</td><td>60</td><td>60</td><td>40</td><td>40</td></tr>
+            <tr class="avg-row"><td colspan="4" style="text-align:right;">Average</td><td>40.00</td><td>20.00</td><td>20.00</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:1rem 0 0.5rem;">Comparison Summary</h3>
+        <table>
+          <thead><tr><th>Metric</th><th class="rr-col">Round Robin</th><th class="srtf-col">SRTF</th><th>Winner</th></tr></thead>
+          <tbody>
+            <tr><td>Avg Waiting Time</td><td>38.00</td><td><span class="winner">20.00 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Turnaround</td><td>58.00</td><td><span class="winner">40.00 ✓</span></td><td class="srtf-col">SRTF</td></tr>
+            <tr><td>Avg Response Time</td><td><span class="winner-rr">2.00 ✓</span></td><td>20.00</td><td class="rr-col">Round Robin</td></tr>
+          </tbody>
+        </table>
+        <div class="analysis-box purple">
+          <strong>Key Observation:</strong> This is the scenario where Round Robin wins on <strong>Response Time</strong> — every process gets CPU within 2 time units (their first quantum), meaning the first response is nearly immediate for all. SRTF, with equal remaining burst times, uses arrival-order tie-breaking (behaving like FCFS), so P2 waits 20 units and P3 waits 40 units before their first CPU slice. However, SRTF still wins on waiting and turnaround because it avoids the overhead of constant switching. <strong>Trade-off: SRTF is more efficient overall; Round Robin is far more responsive and fair.</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENARIO E -->
+  <div class="section" id="scenarioE">
+    <div class="section-title"><div class="section-num bg-red">E</div><h2>Scenario E — Input Validation Demo</h2></div>
+    <div class="scenario-card">
+      <div class="scenario-header" style="background:#fef2f2;">
+        <span class="scenario-label" style="background:#fecaca;color:#7f1d1d;">Scenario E</span>
+        <strong>Demonstrates how the simulator safely detects and rejects invalid input</strong>
+      </div>
+      <div class="scenario-body">
+        <p style="font-size:0.9rem;color:#374151;margin-bottom:0.75rem;">The simulator validates all input before the simulation begins and rejects any invalid data with a descriptive error message popup.</p>
+        <table>
+          <thead><tr><th>Field</th><th>Invalid Value</th><th>Result</th><th>Error Reason</th></tr></thead>
+          <tbody>
+            <tr><td>Time Quantum</td><td style="color:#dc2626;">0</td><td class="rejected">REJECTED ❌</td><td>"Time Quantum must be at least 1"</td></tr>
+            <tr><td>Arrival Time</td><td style="color:#dc2626;">−1</td><td class="rejected">REJECTED ❌</td><td>Arrival Time is negative — must be ≥ 0</td></tr>
+            <tr><td>Burst Time</td><td style="color:#dc2626;">0</td><td class="rejected">REJECTED ❌</td><td>Burst Time = 0 — must be ≥ 1</td></tr>
+            <tr><td>Process ID</td><td style="color:#dc2626;">P1 (duplicate)</td><td class="rejected">REJECTED ❌</td><td>Duplicate Process ID — each PID must be unique</td></tr>
+            <tr><td>Process ID</td><td style="color:#dc2626;">(empty)</td><td class="rejected">REJECTED ❌</td><td>Missing PID — all fields are required</td></tr>
+            <tr><td>All fields</td><td style="color:#059669;">Valid values</td><td class="accepted">ACCEPTED ✅</td><td>Unique PID, AT ≥ 0, BT ≥ 1, TQ ≥ 1</td></tr>
+          </tbody>
+        </table>
+        <div class="analysis-box red" style="margin-top:1rem;">
+          <strong>Validation Result:</strong> The simulator correctly intercepted all invalid entries before any scheduling logic ran. The most notable validation specific to this project (C2) is the <strong>Time Quantum check</strong> — since Round Robin requires TQ ≥ 1, any value of 0 or below is immediately rejected with the message <em>"Time Quantum must be at least 1"</em>. This prevents undefined or infinite scheduling behavior.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. COMPARISON -->
+  <div class="section" id="comparison">
+    <div class="section-title"><div class="section-num bg-green">6</div><h2>Overall Comparison</h2></div>
+    <div class="card">
+      <table class="compare-table">
+        <thead>
+          <tr><th>Criterion</th><th><span class="srtf-col">SRTF (Preemptive)</span></th><th><span class="rr-col">Round Robin (TQ=2)</span></th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Selection basis</td><td>Shortest remaining burst time</td><td>Fixed time quantum rotation</td></tr>
+          <tr><td>Avg Waiting Time — Scenario A</td><td><span class="winner">2.00 ✓</span></td><td>4.25</td></tr>
+          <tr><td>Avg Turnaround — Scenario A</td><td><span class="winner">4.75 ✓</span></td><td>7.00</td></tr>
+          <tr><td>Avg Response Time — Scenario A</td><td><span class="winner">0.25 ✓</span></td><td>1.50</td></tr>
+          <tr><td>Avg Response Time — Scenario D (equal BT)</td><td>20.00</td><td><span class="winner-rr">2.00 ✓</span></td></tr>
+          <tr><td>Fairness to all processes</td><td>Unfair to long-burst processes</td><td><span class="winner">Guaranteed equal slices ✓</span></td></tr>
+          <tr><td>Starvation risk</td><td>High (long jobs can starve)</td><td><span class="winner">None — every process gets CPU ✓</span></td></tr>
+          <tr><td>Overall efficiency</td><td><span class="winner">Higher — minimizes WT &amp; TAT ✓</span></td><td>Lower — context switching overhead</td></tr>
+          <tr><td>Best suited for</td><td>Batch systems, general workloads</td><td>Interactive/time-sharing systems</td></tr>
+          <tr><td>Performance dependence</td><td>Depends on burst time distribution</td><td>Heavily depends on TQ value</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. CONCLUSION -->
+  <div class="section" id="conclusion">
+    <div class="section-title"><div class="section-num bg-green">7</div><h2>Conclusion &amp; Recommendation</h2></div>
+    <div class="conclusion-box">
+      <h3>Final Conclusion</h3>
+      <p><strong>SRTF (Preemptive)</strong> achieved better results in terms of average waiting time and average turnaround time across all tested scenarios. By always executing the process with the shortest remaining burst time, SRTF minimizes waiting time for short processes and delivers the highest overall CPU efficiency.</p>
+      <p><strong>Round Robin</strong> ensures every process receives CPU time within a bounded interval (TQ = 2), making it the clear winner in <strong>response time fairness</strong> and <strong>starvation prevention</strong>. Scenario D demonstrated this perfectly — when all burst times are equal, RR's first-response time (2.00) vastly outperforms SRTF's (20.00).</p>
+      <p><strong>Main Trade-off:</strong> SRTF optimizes overall efficiency (lower average WT and TAT), while Round Robin optimizes fairness and interactivity (guarantees timely response for all processes). The right choice depends on the system's primary goal.</p>
+      <p><strong>Recommendation for the tested workloads: <span style="color:#0d9488;">SRTF</span></strong> — it produced lower average waiting time and turnaround time in 4 out of 5 scenarios, making it more efficient for general-purpose workloads. However, <strong style="color:#7c3aed;">Round Robin</strong> is the better choice for interactive or time-sharing systems where fairness and fast response time matter more than raw efficiency.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>Operating Systems Course — C2: SRTF vs Round Robin Comparison Project</p>
+  <p style="margin-top:0.25rem;">Algorithms: SRTF (Preemptive) and Round Robin (TQ = 2) | Tie-breaking: Shortest Remaining Time → Earlier Arrival → Alphabetical PID</p>
+</div>
+
+</body>
+</html>

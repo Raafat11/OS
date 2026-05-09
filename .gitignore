@@ -1,0 +1,40 @@
+# Compiled Java classes
+*.class
+
+# JAR files
+*.jar
+*.war
+*.ear
+
+# IDE files — IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IDE files — Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IDE files — NetBeans
+nbproject/
+build/
+dist/
+nbbuild/
+nbdist/
+
+# IDE files — VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
